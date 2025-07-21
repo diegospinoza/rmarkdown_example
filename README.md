@@ -21,12 +21,12 @@ The analysis pipeline includes:
 ## Files in this Repository
 
 * `M3_INDICADOR_13_AULA.Rmd`: The R Markdown file containing all the R code, comments, and the final report structure.
-* `/dados/`: A folder containing all necessary datasets, including `.dbf` files and the shapefile for the map.
+* `/DADOS/`: A folder containing all necessary datasets, including `.dbf` files and the shapefile for the map.
 
 ## How to Run This Project
 
 1.  Download or clone this repository.
-2.  Ensure all files maintain the original folder structure (i.e., the `.Rmd` file in the root and the data files inside the `/dados` folder).
+2.  Ensure all files maintain the original folder structure (i.e., the `.Rmd` file in the root and the data files inside the `/DADOS` folder).
 3.  Open the `M3_INDICADOR_13_AULA.Rmd` file in RStudio.
 4.  Install the required packages, which are listed at the beginning of the script (`rio`, `tidyverse`, `janitor`, `stringi`, `gt`, `sf`).
 5.  Click the **"Knit"** button in RStudio to execute the entire analysis and generate the final HTML report.
@@ -37,7 +37,7 @@ This project is also configured to generate a professionally formatted report in
 
 To generate the Word document:
 1.  Open the `M3_INDICADOR_13_AULA.Rmd` file.
-2.  In the YAML header (at the very top), comment out the `html_document` output and uncomment a `word_document` section (a commented example can be added to the Rmd file for clarity).
+2.  In the YAML header (at the very top), comment out the `html_document` output and uncomment a `word_document` section.
 3.  Click "Knit". This will produce a `.docx` file styled according to the template.
 
 ---
