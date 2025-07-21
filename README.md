@@ -31,5 +31,14 @@ The analysis pipeline includes:
 4.  Install the required packages, which are listed at the beginning of the script (`rio`, `tidyverse`, `janitor`, `stringi`, `gt`, `sf`).
 5.  Click the **"Knit"** button in RStudio to execute the entire analysis and generate the final HTML report.
 
+### Alternative Output: Formatted Word Document
+
+This project is also configured to generate a professionally formatted report in Microsoft Word using the custom template (`modelo_rmarkdown.docx`). This demonstrates the ability to automate and integrate R analyses into standard office workflows.
+
+To generate the Word document:
+1.  Open the `M3_INDICADOR_13_AULA.Rmd` file.
+2.  In the YAML header (at the very top), comment out the `html_document` output and uncomment a `word_document` section (a commented example can be added to the Rmd file for clarity).
+3.  Click "Knit". This will produce a `.docx` file styled according to the template.
+
 ---
 **Contact:** Diego Spinoza | diegospinoza@hotmail.com
