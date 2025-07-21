@@ -1,15 +1,19 @@
 ---
-title: "Relatório indicador 13 - PQA-VS Paraná"
+title: "Analysis of PQA-VS Indicator 13 - Paraná, Brazil"
+author: "Diego Spinoza dos Santos"
+date: "`r Sys.Date()`"
 output:
   html_document:
+    theme: cerulean
+    highlight: tango
     toc: true
     toc_float: true
-    theme: journal
+    number_sections: false
 # ---
-# SAÍDA ALTERNATIVA PARA WORD (usando template)
-# Para gerar o relatório em Word, comente a seção 'html_document' acima
-# e descomente a seção 'word_document' abaixo.
-# Certifique-se de que o arquivo 'modelo_rmarkdown.docx' está na mesma pasta.
+# ALTERNATIVE OUTPUT TO WORD (using a template)
+# To generate the report in Word, comment out the 'html_document' section above
+# and uncomment the 'word_document' section below.
+# Make sure the 'modelo_rmarkdown.docx' file is in the same folder.
 # ---
 #  word_document:
 #    reference_docx: modelo_rmarkdown.docx
@@ -591,18 +595,25 @@ ggplot(data = notificacoes_municipios, # Fonte de dados
 
 
 ```
+## About the PQA-VS Program
 
-O **Programa de Qualificação da Ações de Vigilância em Saúde (PQA-VS)** representa um marco para a Vigilância em Saúde por definir compromissos e responsabilidades para as três esferas de governo: a federal, com financiamento e apoio técnico, a estadual e a municipal, buscando induzir a implementação de iniciativas que garantam a melhoria das ações de vigilância em saúde.
+The **Health Surveillance Actions Qualification Program (PQA-VS)** represents a milestone for Health Surveillance in Brazil by defining commitments and responsibilities for the three spheres of government: federal, state, and municipal. It aims to encourage the implementation of initiatives that ensure the improvement of health surveillance actions.
 
-**Indicadores:** Os indicadores pactuados no programa foram selecionados levando-se em conta sua relevância para o Sistema Nacional de Vigilância em Saúde e Ambiente. Em conjunto, eles evidenciam um panorama das principais ações da Vigilância em Saúde e Ambiente, indicando potencialidades a serem exploradas, ou entraves à sua plena realização.
+**Indicators:** The indicators established in the program were selected based on their relevance to the National Health Surveillance and Environment System. Together, they provide an overview of the main actions of Health Surveillance, highlighting potential strengths to be explored or obstacles to their full realization.
 
-A seguir temos os resultados do indicador 13 para as regionais de saúde do Paraná no ano de 2022.
+
+## Results for Indicator 13 - Paraná, 2022
+
+The following sections present the results for Indicator 13 for the health regions of Paraná in the year 2022.
 
 ```{r echo=FALSE}
 indicador13_gt
 ```
 
-O gráfico a seguir apresenta o desempenho das macrorregionais de saúde do Paraná e o seu alcance em relação à meta do indicador 13 do PQA-VS.
+### Indicator 13 by Macro-Region
+
+The following chart shows the performance of the health macro-regions of Paraná and their achievement in relation to the target for PQA-VS Indicator 13.
+
 
 ```{r echo=FALSE}
 ggplot(ind13_macro,                  # Fonte de dados
@@ -648,7 +659,10 @@ ggplot(ind13_macro,                  # Fonte de dados
   theme(legend.position = "none")    # Oculta a legenda do gráfico
 ```
 
-O mapa abaixo apresenta o desempenho do indicador por município do Paraná para o indicador avaliado e se cada uma das cidades atingiu ou não a meta definida de acordo com os parâmetros definidos pelo Ministério da Saúde.
+### Indicator 13 Map by Municipality
+
+The map below presents the performance of the indicator by municipality in Paraná and whether each city met the defined target according to the parameters set by the Ministry of Health.
+
 
 ```{r echo=FALSE}
 ggplot(data = notificacoes_municipios, # Fonte de dados
