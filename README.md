@@ -9,6 +9,8 @@ This repository contains a code sample developed for the Epidemiologist position
 
 This project is an adapted version of the practical material used in the course **"Data Analysis and Visualization in R for Health and Environmental Surveillance"**, offered in partnership with the Pan American Health Organization (PAHO) and Brazil's Ministry of Health.
 
+The original code for data processing and indicator calculation is in the course's source language, Brazilian Portuguese, but the final report was translated into English for demonstration purposes.
+
 The objective of the analysis is to calculate and visualize **Indicator 13** from the Health Surveillance Qualification Program (PQA-VS), a nationwide initiative of Brazil's public health system (SUS). This indicator measures the completeness of "Occupation" and "Economic Activity" fields in occupational health-related notifications.
 
 The analysis pipeline includes:
