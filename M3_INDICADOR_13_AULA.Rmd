@@ -1,0 +1,661 @@
+---
+title: "Relatório indicador 13 - PQA-VS Paraná"
+output:
+  word_document:
+    reference_docx: modelo_rmarkdown.docx
+---
+
+```{r include=FALSE}
+# Curso Visualização e Análise de Dados com Software R
+# Aplicadas à Vigilância em Saúde
+# Programa de Fortalecimento da Epidemiologia nos Serviços de Saúde - PROFEPI
+
+# Módulo 1 - Análise indicador 13 do PQA-VS
+
+# Carregamento dos pacotes necessários ------------------------------------
+
+library(rio)        # Pacote para ler arquivos
+library(tidyverse)  # Pacote para manipulação de dados
+library(janitor)    # Pacote para manipulação de dados
+
+
+# Carregamento das bases de dados para análise ----------------------------
+
+ac_mat_biologico <- import("DADOS/ACD_MATBIO_PROFEPI_NOVO.dbf")
+
+ac_trabalho <- import("DADOS/ACD_TRAB_PROFEPI_NOVO.dbf")
+
+intox_exogena <- import("DADOS/INTOX_EXOG_PROFEPI_NOVO.dbf")
+
+cnae <- import("DADOS/CNAENET.dbf")
+
+cbo <- import("DADOS/OCUPANET.dbf")
+
+
+# Indicador 13 ------------------------------------------------------------
+
+
+# Proporção de preenchimento dos campos “Ocupação” e “Atividade Econômica (CNAE)”
+# nas notificações de acidente de trabalho,
+# acidente de trabalho com exposição a material biológico e
+# intoxicação exógena relacionada ao trabalho segundo município de notificação.
+
+
+# Identificando intoxicações relacionadas ao trabalho ---------------------
+
+# São consideradas para o indicador as notificações  de 
+# intoxicação que o campo 56 DOENCA_TRA está marcado como "1", Sim.
+
+
+intox_exogena_trabalho <- intox_exogena |>
+  filter(DOENCA_TRA == "1")
+
+
+# Juntando as bases de dados para o cálculo do indicador ------------------
+
+# Para junção das bases de dados é importante que as variáveis sejam as mesmas
+# Selecionando as variáveis de interesse para o cálculo do indicador
+# Para isso vamos criar objetos com as mesmas variáveis
+
+
+acmatbio_indicador <- ac_mat_biologico |> 
+  select(ID_AGRAVO, DT_NOTIFIC,
+         SG_UF_NOT, ID_MUNICIP, ID_REGIONA, 
+         ID_MN_RESI, ID_RG_RESI,
+         SIT_TRAB, ID_OCUPA_N, CNAE)
+
+actrab_indicador <- ac_trabalho |> 
+  select(ID_AGRAVO, DT_NOTIFIC,
+         SG_UF_NOT, ID_MUNICIP, ID_REGIONA,
+         ID_MN_RESI, ID_RG_RESI,
+         SIT_TRAB, ID_OCUPA_N, CNAE)
+
+intoxexogen_indicador <- intox_exogena_trabalho |>
+  select(ID_AGRAVO, DT_NOTIFIC,
+         SG_UF_NOT, ID_MUNICIP, ID_REGIONA,
+         ID_MN_RESI, ID_RG_RESI,
+         SIT_TRAB, ID_OCUPA_N, CNAE)
+
+# Unindo as bases de dados
+
+indicador_13 <- bind_rows(acmatbio_indicador,
+                          actrab_indicador,
+                          intoxexogen_indicador)
+
+# Atribuir aos códigos CBO e CNAE os respectivos nomes --------------------
+# Para essa operação vamos realizar a união de tabelas
+
+# Incorporando os nomes das ocupações (CBO)
+
+indicador_13 <- left_join(indicador_13, cbo,
+                          by = "ID_OCUPA_N")
+
+# Incorporando os nomes das atividades econômicas (CNAE)
+
+indicador_13 <- left_join(indicador_13, cnae,
+                          by = c("CNAE" = "CLASS_CNAE"))
+
+# Corrigindo os caracteres codificados
+
+library(stringi) # pacote para manipulação de textos (strings)
+
+# Converter a coluna NM_OCUPACA da codificação CP850 para UTF-8
+indicador_13$NM_OCUPACA <- stri_encode(indicador_13$NM_OCUPACA,
+                                       from = "CP850", to = "UTF-8")
+
+# Cálculo do indicador ----------------------------------------------------
+
+# Precisamos lembrar que o indicador se refere ao município de notificação
+# Neste caso só queremos os notificados do estado avaliado, o PR
+# Vamos filtrar a base de dados, para garantir que a condição esteja atendida
+# Vamos aplicar filter() na variável SG_UF_NOT
+
+indicador13_pr <- indicador_13 |> 
+  filter(SG_UF_NOT == "41")
+
+# Se você está em um município pode filtrar pela coluna ID_MUNICIP
+# e utilizar o código do seu município
+
+# Exemplo:
+# indicador13_curitiba <- indicador_13 |> filter(ID_MUNICIP == "410690")
+
+# Forma de cálculo
+# Passo 1
+
+# Calcular a proporção de preenchimento do campo “Ocupação”:
+# Numerador: Número de notificações dos agravos com o campo “Ocupação”
+# preenchido de acordo com os códigos da (CBO) correspondente
+# Denominador: Número total de casos de agravos notificados,
+# em determinado ano e município de notificação.
+
+# IMPORTANTE, os seguintes CBOs não devem ser incluídos no numerador
+
+# XXX - Não informado",
+# "000000 - CBO sem definição" e
+# "998999 - Ignorado"
+
+# Verificar os CBOs informados na nossa base de dados
+
+cbo_informados <- indicador13_pr |> 
+  group_by(ID_OCUPA_N) |>
+  summarise(NOTIFICACOES = n())
+cbo_informados
+
+# Excluindo os CBO inválidos diretamente na base de dados
+# Excluindo os campos vazios NA
+
+indicador13_cbo_validos <- indicador13_pr |>
+  filter(!ID_OCUPA_N %in% c("XXX",
+                            "000000",
+                            "998999")) |>
+  filter(!is.na(ID_OCUPA_N)) # não vazios
+
+# Armazenando os valores em objetos 
+
+numerador_indicador13a <- nrow(indicador13_cbo_validos)
+numerador_indicador13a
+
+denominador_indicador13 <- nrow(indicador13_pr)
+denominador_indicador13
+
+# Cálculo do Passo 1
+
+indicador13a <- (numerador_indicador13a / denominador_indicador13)
+indicador13a
+
+# Forma de cálculo
+# Passo 2
+
+# Proporção de preenchimento do campo “Atividade Econômica”
+# Numerador: Número de notificações dos agravos com o campo
+# “Atividade Econômica” preenchido de acordo com os códigos da CNAE
+# Denominador: Número total de casos de agravos notificados
+
+indicador13_cnae_validos <- indicador13_pr |>
+  filter(!is.na(CNAE)) # não vazios
+
+numerador_indicador13b <- nrow(indicador13_cnae_validos)
+numerador_indicador13b
+
+# Cálculo do Passo 2
+
+indicador13b <- (numerador_indicador13b / denominador_indicador13)
+indicador13b
+
+# Cálculo do Passo 3
+
+# Média dos resultados das proporções de preenchimento dos
+# campos “ocupação” e “atividade econômica” obtidas para os agravos
+
+indicador13_final <- ((indicador13a + indicador13b) / 2) * 100
+indicador13_final
+
+# Meta do indicador
+# Para 2023: = 60% de preenchimento qualificado
+# Para 2024: = 75% de preenchimento qualificado
+# Para 2025: = 90% de preenchimento qualificado
+
+# Fim da operação de cálculo do indicador 13 do PQA-VS
+
+
+# Formatando um tabela para exportação ------------------------------------
+
+# Vamos trabalhar com a informação do indicador para CBO e CNAE,
+# distribuído pelas regionais de saúde. Assim podemos indicar para os gestores
+# se temos áreas para ação da Vigilância em Saúde do Trabalhador
+# para qualificar as notificações.
+
+# Criando variáveis para avaliar as informações de CBO e CNAE
+
+# Avaliando CBO
+
+# XXX - Não informado",
+# "000000 - CBO sem definição" e
+# "998999 - Ignorado"
+
+# Criar uma REGEX para os CBOs inválidos
+
+cbo_invalido <- c("XXX","000000", "998999")
+cbo_invalido <- str_c(cbo_invalido, collapse = "|")
+cbo_invalido
+
+# Criar variável para avaliar CBO
+
+indicador13_pr <- indicador13_pr |>
+  mutate(cbo_adequado = if_else(
+    is.na(ID_OCUPA_N)| str_detect(ID_OCUPA_N, cbo_invalido),
+    "Inadequado",
+    "Adequado"))
+
+# Avaliando a CNAE
+
+indicador13_pr <- indicador13_pr |>
+  mutate(cnae_adequado = if_else(
+    is.na(CNAE),
+    "Inadequado",
+    "Adequado"))
+
+# Verificando os resultados encontrados anteriormente
+
+resumo_cbo <- indicador13_pr |>
+  group_by(cbo_adequado) |>
+  summarise(notificacoes = n())
+
+resumo_cnae <- indicador13_pr |>
+  group_by(cnae_adequado) |>
+  summarise(notificacoes = n())
+
+# Resultados OK
+
+# Agora vamos agrupar pelas regionais de saúde
+
+# Passo 1: contar as notificações por regional de saúde
+
+notificacoes_regionais <- indicador13_pr |>
+  group_by(ID_REGIONA) |>
+  summarise(notificacoes = n())
+
+# Passo 2: contar as notificações adequadas de CBO
+
+cbo_adequado_regionais <- indicador13_pr |>
+  filter(cbo_adequado == "Adequado") |> 
+  group_by(ID_REGIONA) |>
+  summarise(cbo_adequado = n())
+
+# Passo 3: contar as notificações adequadas de CNAE
+
+cnae_adequado_regionais <- indicador13_pr |>
+  filter(cnae_adequado == "Adequado") |> 
+  group_by(ID_REGIONA) |>
+  summarise(cnae_adequado = n())
+
+# Passo 4: juntar as informações
+
+ind13_regionais <- left_join(notificacoes_regionais,
+                             cbo_adequado_regionais,
+                             by = "ID_REGIONA")
+
+ind13_regionais <- left_join(ind13_regionais,
+                             cnae_adequado_regionais,
+                             by = "ID_REGIONA")
+
+# Passo 5: Para o cálculo precisamos corrigir os NA
+
+ind13_regionais <- ind13_regionais |>
+  mutate(cnae_adequado = replace_na(cnae_adequado, 0))
+
+# Passo 6: calcular o indicador para cada regional
+
+ind13_regionais <- ind13_regionais |>
+  mutate(indicador13 = ((cbo_adequado/notificacoes) +
+                          (cnae_adequado/notificacoes))/2*100)
+
+# Passo 7: Vamos nominar as regionais
+
+# Para isso precisamos da tabela com o nome das regionais
+
+regionais <- import("DADOS/REGIONET.dbf")
+
+# Juntando as tabelas
+
+ind13_regionais <- left_join(ind13_regionais,
+                             regionais,
+                             by = "ID_REGIONA")
+
+# Passo 8: Selecionar as colunas de interesse e renomear as colunas
+
+ind13_regionais <- ind13_regionais |>
+  select(NM_REGIONA, cbo_adequado, cnae_adequado,
+         notificacoes, indicador13) |>
+  rename("Regional de saúde" = "NM_REGIONA",
+         "CBO Adequado" = "cbo_adequado",
+         "CNAE Adequado" = "cnae_adequado",
+         "Notificações" = "notificacoes",
+         "Indicador 13" = "indicador13")
+ind13_regionais
+
+# Passo 9: Formatar uma tabela
+
+library(gt) # Pacote para formatação de tabelas
+
+
+indicador13_gt <- ind13_regionais |>
+  gt() |> # atribui o formato gt
+  tab_header( # atibui um título
+    title = md("**Indicador 13, PQA-VS, segundo Regional de Saúde de Notificação, Paraná, Brasil, 2022**")
+  ) |> 
+  tab_style(                          # Estilo da tabela
+    style = cell_text(weight = "bold"), # negrito
+    locations = cells_column_labels(everything())
+  ) |> 
+  cols_align(       # Alinhamento das colunas
+    align = "center", # centraliza colunas
+    columns = c(2, 3, 4, 5) # define as colunas
+  ) |>
+  fmt_number(
+    columns = c(5),  # Formata coluna específica
+    sep_mark = ".",  # Separador de milhar
+    dec_mark = ",",  # Separador decimal
+    decimals = 1     # Dígitos
+  ) |>
+  tab_footnote(
+    footnote = "Nota: Meta de 60% para CBO e CNAE corretamente preenchidos",
+    locations = cells_title(groups = "title")) |> # Adiciona o indicador da nota
+  tab_style(
+    style = cell_text(weight = "bold"),  # Aplicar negrito
+    locations = cells_body(
+      columns = everything(),  # Todas as colunas
+      rows = which(ind13_regionais[[5]] >= 60)  # Condição para aplicar o negrito
+    )) |> 
+  tab_options(
+    table.font.size = "small"
+  )
+
+indicador13_gt
+
+
+###############################################################################
+
+
+# Módulo 2 ----------------------------------------------------------------
+
+# Curso Visualização e Análise de Dados com Software R
+# Aplicadas à Vigilância em Saúde e Ambiente
+# Programa de Fortalecimento da Epidemiologia nos Serviços de Saúde - PROFEPI
+
+# Módulo 2 - Criando gráfico para o indicador 13 do PQA-VS
+
+# Criar vetores com as regionais que compõem as macrorregiões
+# Usando a REGEX que já aprendemos
+
+leste <- "^01|^02|^03|^04|^05|^06|^21"
+oeste <- "^07|^08|^09|^10|^20"
+norte <- "^16|^17|^18|^19|^22"
+noroeste <- "^11|^12|^13|^14|^15"
+
+
+
+# Criar a variável de macrorregião
+
+ind13_regionais <- ind13_regionais |>
+  mutate(macro = case_when(
+    str_detect(`Regional de saúde`, leste) ~ "Leste",
+    str_detect(`Regional de saúde`, oeste) ~ "Oeste",
+    str_detect(`Regional de saúde`, norte) ~ "Norte",
+    str_detect(`Regional de saúde`, noroeste) ~ "Noroeste"))
+
+# Criar um resumo por macrorregião
+
+ind13_macro <- ind13_regionais |> 
+  group_by(macro) |>
+  summarise(cbo_adequado = sum(`CBO Adequado`),
+            cnae_adequado = sum(`CNAE Adequado`),
+            notificacoes = sum(Notificações)) |>
+  mutate(ind13 = (((cbo_adequado/notificacoes) +
+                     (cnae_adequado/notificacoes))/2*100))
+
+
+# Criar gráfico por macrorregião de saúde ---------------------------------
+
+
+# Gráfico de barras com linha de referência da meta do indicador
+
+ggplot(ind13_macro,                  # Fonte de dados
+       aes(x = macro,                # Variável do eixo X (macorrregiões)
+           y = ind13,                # Variável do eixo Y (valores da variável)
+           fill = macro)) +          # Cores para as macrorregionais
+  
+  geom_bar(                          # Define a geometria de barra (geom_bar)
+    stat = "identity",        # Usa os valores da variável para a barra
+    width = 0.6,              # Define a largura da barras (60%)
+    color = "black") +        # Define o contorno das barras
+  
+  geom_hline(                        # Adiciona a linha da meta
+    yintercept = 60,        # Posiciona a linha em 60 (meta)
+    linetype = "dashed",    # Define a linha como pontilhada
+    color = "red",          # Define a cor da linha
+    linewidth = 1) +        # Define a espessura da linha
+  
+  annotate(                          # Adiciona uma anotação no gráfico (Meta)
+    "text",                   # Define que a anotação será um texto
+    x = 4.5,                  # Posição do texto, próximo ao fim de X
+    y = 60,                   # Posição do texto em Y, sobre a linha (60)
+    label = "Meta indicador", # Define o texto da anotação  
+    color = "black",          # Cor do texto
+    hjust = 1,                # Alinha texto à direita
+    vjust = -0.5,             # Espaça o texto para logo acima da linha
+    size = 5) +               # Tamanho da fonte
+  
+  labs(                              # Define o título e rótulos do gráfico
+    title = "Desempenho por Macroregião, Indicador 13 - PQA-VS, PR, 2022",
+    x = "Macroregião",            # Rótulo dos eixos X e Y
+    y = "Proporção de notificações preenchidas adequadamente",
+    fill = "Macrorregiões") +
+  scale_fill_manual(                 # Define manualmente as cores das colunas
+    # Define as cores das macrorregiões
+    values = c("Norte"    = "#fc8d59",      
+               "Oeste"    = "#fee08b", 
+               "Noroeste" = "#91cf60", 
+               "Leste"    = "#1a9850")) +
+  
+  theme_minimal() +                  # Aplica o tema minimalista
+  
+  theme(legend.position = "none")    # Oculta a legenda do gráfico
+
+
+# Módulo 2 ----------------------------------------------------------------
+
+# Curso Visualização e Análise de Dados com Software R
+# Aplicadas à Vigilância em Saúde e Ambiente
+# Programa de Fortalecimento da Epidemiologia nos Serviços de Saúde - PROFEPI
+
+# Módulo 2 - Criando mapa para o indicador 13 do PQA-VS
+
+
+# Criar mapa com número de notificações por município ---------------------
+
+# Carregar dados dos municípios da tabela do SINAN, filtrando PR 
+
+municipios_pr <- import("DADOS/MUNICNET.dbf") |>
+  filter(SG_UF == "PR")
+
+# Juntando a tabela do indicador com a tabela de município
+
+indicador13_pr <- indicador13_pr |> 
+  left_join(municipios_pr,
+            by = c("ID_REGIONA",
+                   "ID_MUNICIP"))
+
+# Carregando shapefile de municípios do IBGE para o R
+# Para isso precisamos do pacote {sf}
+
+# Carrega pacote {sf}, caso não tenha instalado,
+# faça a instalação com instal.packages("sf")
+
+library(sf)
+
+# Leitura do arquivo shapefile com a função st_read
+
+mapa_municipios <- st_read("DADOS/PR_Municipios_2022.shp")
+
+# Ajustando o código dos municípios para que tenham 6 dígitos
+
+mapa_municipios <- mapa_municipios |> 
+  mutate(COD6DIG = str_sub(CD_MUN, 1, 6))
+
+# Unindo os mapas (shapefile) aos dados de notificações, usando o código
+
+mapa_municipios <- mapa_municipios |> 
+  left_join(indicador13_pr,
+            by = c("COD6DIG" = "ID_MUNICIP"))
+
+# Criando um dataset com o número de notificações por município
+# Resumindo as notificações para uma linha por município
+
+notificacoes_municipios <- mapa_municipios |>
+  group_by(NM_MUN, COD6DIG, geometry) |>
+  summarise(notificacoes = n())
+
+# CBO adequado por município
+# Identificando apenas as notificações com CBO adequado
+
+municipio_cbo <- indicador13_pr |>
+  filter(cbo_adequado == "Adequado") |> 
+  group_by(ID_MUNICIP) |>
+  summarise(cbo_adequado = n())
+
+# CNAE adequado por município
+# Identificando apenas as notificações com CNAE adequado
+
+municipio_cnae <- indicador13_pr |>
+  filter(cnae_adequado == "Adequado") |> 
+  group_by(ID_MUNICIP) |>
+  summarise(cnae_adequado = n())
+
+# Juntando os datasets
+
+# Juntando notificações e informações de CBO 
+
+notificacoes_municipios <- notificacoes_municipios |>
+  left_join(municipio_cbo,
+            by = c("COD6DIG" = "ID_MUNICIP"))
+
+# Juntando dataset anterior e informações de CNAE
+
+notificacoes_municipios <- notificacoes_municipios |>
+  left_join(municipio_cnae,
+            by = c("COD6DIG" = "ID_MUNICIP"))
+
+# Ajustando o dataset final e calculando o indicador para cada município
+# removendo os valores NA para realizar os cálculos do indicador
+
+notificacoes_municipios <- notificacoes_municipios |>
+  replace_na(list(notificacoes = 0,
+                  cbo_adequado = 0,
+                  cnae_adequado = 0)) |>
+  mutate(ind13 = (((cbo_adequado/notificacoes) +
+                     (cnae_adequado/notificacoes))/2*100))
+
+# Criar uma categorização dos percentuais pensando no indicador
+
+# Meta do indicador
+# Para 2023: = 60% de preenchimento qualificado
+# Para 2024: = 75% de preenchimento qualificado
+# Para 2025: = 90% de preenchimento qualificado
+
+notificacoes_municipios <- notificacoes_municipios |>
+  mutate(meta_ind13 = case_when(ind13 < 60 ~ "Não atingiu",
+                                ind13 >= 60 & ind13 < 75 ~ "Meta 2023",
+                                ind13 >= 75 & ind13 < 90 ~ "Meta 2024",
+                                ind13 >= 90 ~ "Meta 2025"))
+
+
+# Mapa com metas por município
+
+
+ggplot(data = notificacoes_municipios, # Fonte de dados
+       aes(fill = meta_ind13)) +       # Variável de preenchimento do mapa
+  # Neste caso X e Y são as coordenadas
+  geom_sf() +                          # Define a geometria de mapa sf
+  theme_minimal()+                     # Aplica o tema minimalista
+  # Define os títulos e rótulos
+  labs(title = "Metas do Indicador 13, PQA-VS, PR, 2022",
+       subtitle = "Proporção de preenchimento dos campos “Ocupação” e “Atividade Econômica (CNAE)”",
+       fill = "Metas indicador") +
+  # Define as cores manualmente
+  scale_fill_manual(values = c("Não atingiu" = "#f6e8c3", 
+                               "Meta 2023"   = "#ccece6", 
+                               "Meta 2024"   = "#41ae76", 
+                               "Meta 2025"   = "#005824"))
+
+
+####################################################
+
+# Módulo 3 - Construção de relatórios -------------------------------------
+
+# Curso Visualização e Análise de Dados com Software R
+# Aplicadas à Vigilância em Saúde e Ambiente
+# Programa de Fortalecimento da Epidemiologia nos Serviços de Saúde - PROFEPI
+
+# Módulo 3 - Criando relatório para o indicador 13 do PQA-VS
+
+
+```
+
+O **Programa de Qualificação da Ações de Vigilância em Saúde (PQA-VS)** representa um marco para a Vigilância em Saúde por definir compromissos e responsabilidades para as três esferas de governo: a federal, com financiamento e apoio técnico, a estadual e a municipal, buscando induzir a implementação de iniciativas que garantam a melhoria das ações de vigilância em saúde.
+
+**Indicadores:** Os indicadores pactuados no programa foram selecionados levando-se em conta sua relevância para o Sistema Nacional de Vigilância em Saúde e Ambiente. Em conjunto, eles evidenciam um panorama das principais ações da Vigilância em Saúde e Ambiente, indicando potencialidades a serem exploradas, ou entraves à sua plena realização.
+
+A seguir temos os resultados do indicador 13 para as regionais de saúde do Paraná no ano de 2022.
+
+```{r echo=FALSE}
+indicador13_gt
+```
+
+O gráfico a seguir apresenta o desempenho das macrorregionais de saúde do Paraná e o seu alcance em relação à meta do indicador 13 do PQA-VS.
+
+```{r echo=FALSE}
+ggplot(ind13_macro,                  # Fonte de dados
+       aes(x = macro,                # Variável do eixo X (macorrregiões)
+           y = ind13,                # Variável do eixo Y (valores da variável)
+           fill = macro)) +          # Cores para as macrorregionais
+  
+  geom_bar(                          # Define a geometria de barra (geom_bar)
+    stat = "identity",        # Usa os valores da variável para a barra
+    width = 0.6,              # Define a largura da barras (60%)
+    color = "black") +        # Define o contorno das barras
+  
+  geom_hline(                        # Adiciona a linha da meta
+    yintercept = 60,        # Posiciona a linha em 60 (meta)
+    linetype = "dashed",    # Define a linha como pontilhada
+    color = "red",          # Define a cor da linha
+    linewidth = 1) +        # Define a espessura da linha
+  
+  annotate(                          # Adiciona uma anotação no gráfico (Meta)
+    "text",                   # Define que a anotação será um texto
+    x = 4.5,                  # Posição do texto, próximo ao fim de X
+    y = 60,                   # Posição do texto em Y, sobre a linha (60)
+    label = "Meta indicador", # Define o texto da anotação  
+    color = "black",          # Cor do texto
+    hjust = 1,                # Alinha texto à direita
+    vjust = -0.5,             # Espaça o texto para logo acima da linha
+    size = 5) +               # Tamanho da fonte
+  
+  labs(                              # Define o título e rótulos do gráfico
+    title = "Desempenho por Macroregião, Indicador 13 - PQA-VS, PR, 2022",
+    x = "Macroregião",            # Rótulo dos eixos X e Y
+    y = "Proporção de notificações preenchidas adequadamente",
+    fill = "Macrorregiões") +
+  scale_fill_manual(                 # Define manualmente as cores das colunas
+    # Define as cores das macrorregiões
+    values = c("Norte"    = "#fc8d59",      
+               "Oeste"    = "#fee08b", 
+               "Noroeste" = "#91cf60", 
+               "Leste"    = "#1a9850")) +
+  
+  theme_minimal() +                  # Aplica o tema minimalista
+  
+  theme(legend.position = "none")    # Oculta a legenda do gráfico
+```
+
+O mapa abaixo apresenta o desempenho do indicador por município do Paraná para o indicador avaliado e se cada uma das cidades atingiu ou não a meta definida de acordo com os parâmetros definidos pelo Ministério da Saúde.
+
+```{r echo=FALSE}
+ggplot(data = notificacoes_municipios, # Fonte de dados
+       aes(fill = meta_ind13)) +       # Variável de preenchimento do mapa
+  # Neste caso X e Y são as coordenadas
+  geom_sf() +                          # Define a geometria de mapa sf
+  theme_minimal()+                     # Aplica o tema minimalista
+  # Define os títulos e rótulos
+  labs(title = "Metas do Indicador 13, PQA-VS, PR, 2022",
+       subtitle = "Proporção de preenchimento dos campos “Ocupação” e “Atividade Econômica (CNAE)”",
+       fill = "Metas indicador") +
+  # Define as cores manualmente
+  scale_fill_manual(values = c("Não atingiu" = "#f6e8c3", 
+                               "Meta 2023"   = "#ccece6", 
+                               "Meta 2024"   = "#41ae76", 
+                               "Meta 2025"   = "#005824"))
+
+
+```
+
