@@ -1,8 +1,18 @@
 ---
 title: "Relatório indicador 13 - PQA-VS Paraná"
 output:
-  word_document:
-    reference_docx: modelo_rmarkdown.docx
+  html_document:
+    toc: true
+    toc_float: true
+    theme: journal
+# ---
+# SAÍDA ALTERNATIVA PARA WORD (usando template)
+# Para gerar o relatório em Word, comente a seção 'html_document' acima
+# e descomente a seção 'word_document' abaixo.
+# Certifique-se de que o arquivo 'modelo_rmarkdown.docx' está na mesma pasta.
+# ---
+#  word_document:
+#    reference_docx: modelo_rmarkdown.docx
 ---
 
 ```{r include=FALSE}
