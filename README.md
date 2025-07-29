@@ -37,7 +37,7 @@ The analysis pipeline includes:
 
 This project is also configured to generate a professionally formatted report in Microsoft Word using the custom template (`modelo_rmarkdown.docx`). This demonstrates the ability to automate and integrate R analyses into standard office workflows.
 
-**Note:** A recorded video lecture (in Portuguese with YouTube's auto-generated subtitles) that walks through this code is available at: https://www.youtube.com/watch?v=hG0neJ1tiQo
+**Note:** A recorded video lecture (in Portuguese) that walks through this code is available at: https://www.youtube.com/watch?v=hG0neJ1tiQo
 
 To generate the Word document:
 1.  Open the `M3_INDICADOR_13_AULA.Rmd` file.
