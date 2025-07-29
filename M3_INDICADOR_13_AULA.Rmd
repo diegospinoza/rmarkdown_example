@@ -24,6 +24,12 @@ output:
 # Applied to Health Surveillance
 # Program for Strengthening Epidemiology in Health Services - PROFEPI
 
+# Author: Diego Spinoza dos Santos
+# Note: This code is accompanied by a recorded video lecture (in Portuguese with subtitles)
+# available at: <https://www.youtube.com/watch?v=hG0neJ1tiQo>
+
+
+
 # Module 1 - Analysis of PQA-VS Indicator 13
 
 # Loading required packages ------------------------------------
@@ -594,6 +600,8 @@ ggplot(data = notificacoes_municipios, # Data source
 # Program for Strengthening Epidemiology in Health Services - PROFEPI
 
 # Module 3 - Creating a report for PQA-VS Indicator 13
+
+
 
 
 ```
